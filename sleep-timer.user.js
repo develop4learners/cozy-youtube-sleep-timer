@@ -21,11 +21,13 @@
   let intervalId = null;
   let remainingMs = 0;
   let lastMinutes = 55;
+  let panelVisible = false;
+  let panelEl = null;
 
   /***************
    * ELEMENTS
    ***************/
-  let panelEl, inputEl, countdownEl, startBtn, cancelBtn;
+  let inputEl, countdownEl, startBtn, cancelBtn;
 
   /***************
    * CSS (FROZEN ❄️)
@@ -114,43 +116,97 @@
     }
 
   `;
-  document.head.appendChild(style);
+
+   /**************************
+   * GLOBAL ESC (Runs on REFRESH)
+   **************************/
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && timerRunning) {
+      e.preventDefault();
+      cancelTimer();
+    }
+  });
+
+   /***************
+   * RUN on REFRESH
+   ***************/
+   document.head.appendChild(style);
+   registerOpenCommand();
+
+   /***************
+   * OPEN and CLOSE
+   ***************/
+function openPanel() {
+  panelEl = document.getElementById("sleep-timer-panel");
+
+  if (!panelEl) {
+    createPanel();
+    panelEl = document.getElementById("sleep-timer-panel");
+  }
+
+  panelEl.style.display = "block";
+  panelVisible = true;
+}
+
+
+function closePanel() {
+  panelEl = document.getElementById("sleep-timer-panel");
+  if (!panelEl) return;
+
+  panelEl.style.display = "none";
+  panelVisible = false;
+}
+
+
+  function registerOpenCommand() {
+     GM_registerMenuCommand("Open Sleep Timer", () => {
+       openPanel();
+       registerCloseCommand();
+     });
+  }
+
+  function registerCloseCommand() {
+     GM_registerMenuCommand("Close Sleep Timer", () => {
+       closePanel();
+       registerOpenCommand();
+     });
+  }
+
 
   /***************
    * DRAGGABLE
    ***************/
-  function makePanelDraggable(panel) {
-    let isDragging = false;
-    let startX, startY, startTop, startRight;
+function makePanelDraggable(panel) {
+  let isDragging = false;
+  let startX, startY, startLeft, startTop;
 
-    panel.addEventListener("mousedown", (e) => {
-      isDragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
+  panel.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
 
-      const rect = panel.getBoundingClientRect();
-      startTop = rect.top;
-      startRight = window.innerWidth - rect.right;
+    const rect = panel.getBoundingClientRect();
+    startLeft = rect.left;
+    startTop = rect.top;
 
-      document.body.style.userSelect = "none";
-    });
+    document.body.style.userSelect = "none";
+  });
 
-    document.addEventListener("mousemove", (e) => {
-      if (!isDragging) return;
+  document.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
 
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
 
-      panel.style.top = `${startTop + dy}px`;
-      panel.style.right = `${startRight - dx}px`;
-    });
+    panel.style.left = `${startLeft + dx}px`;
+    panel.style.top = `${startTop + dy}px`;
+  });
 
-    document.addEventListener("mouseup", () => {
-      isDragging = false;
-      document.body.style.userSelect = "";
-    });
-  }
-
+  document.addEventListener("mouseup", () => {
+    isDragging = false;
+    document.body.style.userSelect = "";
+  });
+}
   /***************
    * PANEL CREATION
    ***************/
@@ -196,6 +252,7 @@
     inputEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter") startFromInput();
     });
+
   }
 
   /***************
@@ -273,23 +330,5 @@
     const video = document.querySelector("video");
     if (video) video.pause();
   }
-
-  /***************
-   * GLOBAL ESC
-   ***************/
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && timerRunning) {
-      e.preventDefault();
-      cancelTimer();
-    }
-  });
-
-  /***************
-   * MENU / FALLBACK
-   ***************/
-  if (typeof GM_registerMenuCommand === "function") {
-    GM_registerMenuCommand("Open Sleep Timer", createPanel);
-  } else {
-    createPanel();
-  }
+  
 })();
